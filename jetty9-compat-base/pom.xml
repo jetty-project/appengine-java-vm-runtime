@@ -42,6 +42,13 @@
       <type>jar</type>
     </dependency>
     <dependency>
+      <groupId>com.google.appengine.demos</groupId>
+      <artifactId>testwebapp</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <type>war</type>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-security</artifactId>
       <version>${jetty.version}</version>
@@ -135,6 +142,18 @@
     </dependency>
   </dependencies>
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/jetty-base</directory>
+        <targetPath>${project.build.directory}/jetty-base</targetPath>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*.xml</include>
+          <include>**/*.mod</include>
+          <include>**/*.properties</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -154,7 +173,6 @@
           </archive>
         </configuration>
       </plugin>
-
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -162,21 +180,18 @@
             <id>test-webapp</id>
             <phase>generate-test-resources</phase>
             <goals>
-              <goal>copy</goal>
+              <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>com.google.appengine.demos</groupId>
-                  <artifactId>testwebapp</artifactId>
-                  <version>1.0-SNAPSHOT</version>
-                  <type>war</type>
-                  <overWrite>true</overWrite>
-                  <includes>**</includes>
-                  <outputDirectory>${project.build.directory}/webapps/</outputDirectory>
-                  <destFileName>testwebapp.war</destFileName>
-                </artifactItem>
-              </artifactItems>
+              <includeGroupIds>com.google.appengine.demos</includeGroupIds>
+              <includeArtifactIds>testwebapp</includeArtifactIds>
+              <includeScope>runtime</includeScope>
+              <includeTypes>war</includeTypes>
+              <stripVersion>true</stripVersion>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>true</overWriteSnapshots>
+              <excludeTransitive>true</excludeTransitive>
+              <outputDirectory>${project.build.directory}/webapps/</outputDirectory>
             </configuration>
           </execution>
           <execution>
@@ -222,20 +237,6 @@
         <version>1.8</version>
         <executions>
           <execution>
-            <id>generate-jetty-base</id>
-            <phase>generate-resources</phase>
-            <configuration>
-              <target>
-                <copy todir="${project.build.directory}/jetty-base">
-                  <fileset dir="${project.basedir}/src/main/jetty-base"/>
-                </copy>
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-          <execution>
             <id>generate-test-war</id>
             <phase>generate-test-resources</phase>
             <configuration>
@@ -271,7 +272,7 @@
         <executions>
           <execution>
             <id>add-jetty-modules</id>
-            <phase>generate-resources</phase>
+            <phase>process-resources</phase>
             <goals>
               <goal>exec</goal>
             </goals>
