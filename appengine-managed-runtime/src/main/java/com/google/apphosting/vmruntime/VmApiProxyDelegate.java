@@ -150,6 +150,7 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
       int timeoutMs,
       boolean wasAsync) {
     // If this was caused by an async call we need to return the pending call semaphore.
+      logger.info(String.format("makeApiCall(%s,%s,%s,byte[%d],%dms,%b)",environment,packageName,methodName,requestData==null?-1:requestData.length,timeoutMs,wasAsync));
     environment.apiCallStarted(VmRuntimeUtils.MAX_USER_API_CALL_WAIT_MS, wasAsync);
     try {
       return runSyncCall(environment, packageName, methodName, requestData, timeoutMs);
