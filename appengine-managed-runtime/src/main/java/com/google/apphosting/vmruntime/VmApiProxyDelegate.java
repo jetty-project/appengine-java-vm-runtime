@@ -151,21 +151,28 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
       int timeoutMs,
       boolean wasAsync) {
     // If this was caused by an async call we need to return the pending call semaphore.
-    long start = System.nanoTime();
+    long start = System.currentTimeMillis();
     environment.apiCallStarted(VmRuntimeUtils.MAX_USER_API_CALL_WAIT_MS, wasAsync);
     try {
       byte responseData[] = runSyncCall(environment, packageName, methodName, requestData, timeoutMs);
-      long end = System.nanoTime();
-      logger.log(Level.INFO, String.format("API-CALL[%s, %s(%,d bytes) success, latency=%,dns response=%,d bytes]",
-              packageName, methodName, requestData.length, (end - start), responseData.length));
+      long end = System.currentTimeMillis();
+      logger.log(Level.INFO, String.format(
+              "Service bridge API call to package: %s, call: %s, of size: %s " +
+              "complete. Service bridge status code: %s; response " +
+              "content-length: %s. Took %s ms.",
+              packageName, methodName, requestData.length, 200,
+              responseData.length, (end - start)));
       return responseData;
-    } catch(RPCFailedStatusException e) {
-      logger.log(Level.WARNING, String.format("API-CALL[%s, %s(%,d bytes) failure=%d:%s, latency=0 response=0]",
-              packageName, methodName, requestData.length, e.getStatusCode(), e.getClass().getSimpleName()));
-      throw e;
-    } catch(RPCFailedException e) {
-      logger.log(Level.WARNING, String.format("API-CALL[%s, %s(%,d bytes) failure=%d:%s, latency=0 response=0]",
-              packageName, methodName, requestData.length, 200, e.getClass().getSimpleName()));
+    } catch(Exception e) {
+      long end = System.currentTimeMillis();
+      int statusCode = 200; // default
+      if(e instanceof RPCFailedStatusException)
+        statusCode = ((RPCFailedStatusException) e).getStatusCode();
+      logger.log(Level.WARNING, String.format(
+              "Exception during service bridge API call to package: %s, call: %s, " +
+              "of size: %s bytes, status code: %d. Took %s ms. %s",
+              packageName, methodName, requestData.length, statusCode,
+              (end-start), e.getClass().getSimpleName()),e);
       throw e;
     } finally {
       environment.apiCallCompleted();
