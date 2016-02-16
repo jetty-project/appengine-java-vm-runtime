@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 /**
  * Implements the ApiProxy environment when running in a Google Compute Engine VM.
@@ -245,16 +244,8 @@ public class VmApiProxyEnvironment implements ApiProxy.Environment {
    */
   private static String getEnvOrMetadata(Map<String, String> environmentMap, VmMetadataCache cache,
       String envKey, String metadataPath) {
-    
-    Logger logger = Logger.getLogger(VmApiProxyEnvironment.class.getName());
     String envValue = environmentMap.get(envKey);
-    if(envValue != null) {
-        logger.info(String.format(".getEnvOrMetadata(\"%s\") (from env) => %s",envKey, envValue));
-    } else {
-        envValue = cache.getMetadata(metadataPath);
-        logger.info(String.format(".getEnvOrMetadata(\"%s\") (from metadata) => %s",envKey, envValue));
-    }
-    return envValue;
+    return envValue != null ? envValue : cache.getMetadata(metadataPath);
   }
 
   /**
@@ -307,10 +298,6 @@ public class VmApiProxyEnvironment implements ApiProxy.Environment {
     attributes.put(BACKEND_ID_KEY, module);
     attributes.put(INSTANCE_ID_KEY, instance);
     attributes.put(AFFINITY_KEY, affinity);
-    
-    Logger logger = Logger.getLogger(VmApiProxyEnvironment.class.getName());
-    logger.info("server = "+server);
-    logger.info("longAppId = "+longAppId);
     VmApiProxyEnvironment defaultEnvironment = new VmApiProxyEnvironment(server, longAppId,
         partition, module, majorVersion, minorVersion, instance, appengineHostname, email, admin,
         authDomain, useMvmAgent, wallTimer, millisUntilSoftDeadline, attributes);

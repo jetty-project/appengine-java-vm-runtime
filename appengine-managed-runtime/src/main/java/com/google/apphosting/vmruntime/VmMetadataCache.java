@@ -24,7 +24,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -99,7 +98,6 @@ public class VmMetadataCache {
   protected HttpURLConnection openConnection(String path) throws IOException {
     String server = System.getProperty("metadata_server", DEFAULT_META_DATA_SERVER);
     URL url = new URL(String.format(META_DATA_PATTERN, server, path));
-    logger.info("url = " + url);
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestProperty("Metadata-Flavor", "Google");
     return conn;
@@ -133,10 +131,6 @@ public class VmMetadataCache {
       }
       throw new IOException("Meta-data request for '" + path + "' failed with error: "
           + connection.getResponseMessage());
-    } catch(IOException e)
-    {
-        logger.log(Level.WARNING, "unable to get metadata from server", e);
-        throw e;
     } finally {
       if (reader != null) {
         try {
