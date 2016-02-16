@@ -1,12 +1,12 @@
 /**
  * Copyright 2012 Google Inc. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS-IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,6 +64,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -113,7 +114,7 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
     this(new DefaultHttpClient(createConnectionManager()));
   }
 
-  
+
   VmApiProxyDelegate(HttpClient httpclient) {
     this.defaultTimeoutMs = DEFAULT_RPC_TIMEOUT_MS;
     this.executor = Executors.newCachedThreadPool();
@@ -150,15 +151,28 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
       int timeoutMs,
       boolean wasAsync) {
     // If this was caused by an async call we need to return the pending call semaphore.
+    long start = System.nanoTime();
     environment.apiCallStarted(VmRuntimeUtils.MAX_USER_API_CALL_WAIT_MS, wasAsync);
     try {
-      return runSyncCall(environment, packageName, methodName, requestData, timeoutMs);
+      byte responseData[] = runSyncCall(environment, packageName, methodName, requestData, timeoutMs);
+      long end = System.nanoTime();
+      logger.log(Level.INFO, String.format("API-CALL[%s, %s(%,d bytes) success, latency=%,dns response=%,d bytes]",
+              packageName, methodName, requestData.length, (end - start), responseData.length));
+      return responseData;
+    } catch(RPCFailedStatusException e) {
+      logger.log(Level.WARNING, String.format("API-CALL[%s, %s(%,d bytes) failure=%d:%s, latency=0 response=0]",
+              packageName, methodName, requestData.length, e.getStatusCode(), e.getClass().getSimpleName()));
+      throw e;
+    } catch(RPCFailedException e) {
+      logger.log(Level.WARNING, String.format("API-CALL[%s, %s(%,d bytes) failure=%d:%s, latency=0 response=0]",
+              packageName, methodName, requestData.length, 200, e.getClass().getSimpleName()));
+      throw e;
     } finally {
       environment.apiCallCompleted();
     }
   }
 
-  
+
   protected byte[] runSyncCall(VmApiProxyEnvironment environment, String packageName,
       String methodName, byte[] requestData, int timeoutMs) {
     HttpPost request = createRequest(environment, packageName, methodName, requestData, timeoutMs);
@@ -172,7 +186,7 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
         try (Scanner errorStreamScanner =
             new Scanner(new BufferedInputStream(response.getEntity().getContent()));) {
           logger.info("Error body: " + errorStreamScanner.useDelimiter("\\Z").next());
-          throw new RPCFailedException(packageName, methodName);
+          throw new RPCFailedStatusException(packageName, methodName, response.getStatusLine().getStatusCode());
         }
       }
       try (BufferedInputStream bis = new BufferedInputStream(response.getEntity().getContent())) {
@@ -259,7 +273,7 @@ public class VmApiProxyDelegate implements ApiProxy.Delegate<VmApiProxyEnvironme
    * @param timeoutMs The timeout for this request
    * @return an HttpPost object to send to the API.
    */
-  // 
+  //
   static HttpPost createRequest(VmApiProxyEnvironment environment, String packageName,
       String methodName, byte[] requestData, int timeoutMs) {
     // Wrap the payload in a RemoteApi Request.
