@@ -16,6 +16,7 @@
 package com.google.apphosting.tests.usercode.testservlets;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.io.EOFException;
 
 import javax.servlet.http.HttpServlet;
@@ -29,7 +30,20 @@ public class TestServlet extends HttpServlet {
   private static int count = 0;
 
   public void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException {
+
+    Collection<String> history = (Collection<String>)req.getAttribute("history");
+    if (history!=null)
+      history.add(String.format("%d,%s", System.nanoTime(),"Servlet Dispatched"));
+    
     doResponse(res);
+
+    res.flushBuffer();
+    if (history!=null)
+      history.add(String.format("%d,%s", System.nanoTime(),"Response Committed"));
+    
+    if (history!=null)
+      for (String line : history)
+        res.getWriter().println(line);
   }
 
   public void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {

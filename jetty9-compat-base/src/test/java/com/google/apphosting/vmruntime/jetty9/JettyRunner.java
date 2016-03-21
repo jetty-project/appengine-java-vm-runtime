@@ -30,6 +30,8 @@ import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.NCSARequestLog;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.VmHttpConnectionFactory;
+import org.eclipse.jetty.server.VmServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
@@ -106,7 +108,7 @@ class JettyRunner implements Runnable {
       QueuedThreadPool threadpool = new QueuedThreadPool();
       server = new Server(threadpool);
       HttpConfiguration httpConfig = new HttpConfiguration();
-      ServerConnector connector = new ServerConnector(server,new HttpConnectionFactory(httpConfig));
+      ServerConnector connector = new VmServerConnector(server,-1,-1,new VmHttpConnectionFactory(httpConfig));
       connector.setPort(port);
       server.addConnector(connector);
 

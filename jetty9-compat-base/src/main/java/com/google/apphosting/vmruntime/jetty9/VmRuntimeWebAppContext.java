@@ -50,6 +50,7 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.session.AbstractSessionManager;
+import org.eclipse.jetty.util.ConcurrentArrayQueue;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.util.log.Log;
@@ -60,9 +61,12 @@ import org.eclipse.jetty.webapp.WebAppContext;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -350,17 +354,43 @@ public class VmRuntimeWebAppContext
 
   class RequestContext extends HttpServletRequestAdapter { 
     private final VmApiProxyEnvironment requestSpecificEnvironment;
+    private final Queue<String> history = new ConcurrentArrayQueue<>();
     
     RequestContext(Request request) {
       super(request);
+
+      request.setAttribute("history", history);
+      Long l=(Long)request.getAttribute("opened");
+      if (l!=null)
+        record(l.longValue(),"Endpoint Opened");
+      l=(Long)request.getAttribute("selected");
+      if (l!=null)
+        record(l,"Last Selected");
+      record("RequestContext created");
+      
       this.requestSpecificEnvironment=
       VmApiProxyEnvironment.createFromHeaders(
           System.getenv(), metadataCache, this, VmRuntimeUtils.getApiServerAddress(),
           wallclockTimer, VmRuntimeUtils.ONE_DAY_IN_MILLIS, defaultEnvironment);
+      record("VmApiProxyEnv created");
     }
 
+    void record(String event)
+    {
+      record(System.nanoTime(),event);
+    }
+    void record(long nano,String event)
+    {
+      history.offer(String.format("%d,%s", nano, event));
+    }
+    
     VmApiProxyEnvironment getRequestSpecificEnvironment() {
       return requestSpecificEnvironment;
+    }
+
+    public void logHistory() {
+      for (String line : history)
+        LOG.info("HISTORY, "+line);
     }
   }
   
@@ -368,6 +398,7 @@ public class VmRuntimeWebAppContext
     @Override
     public void enterScope(org.eclipse.jetty.server.handler.ContextHandler.Context context, Request baseRequest, Object reason) {
       RequestContext requestContext = getRequestContext(baseRequest);
+      requestContext.record("enterScope");
       if (LOG.isDebugEnabled())
         LOG.debug("Enter {} -> {}",ApiProxy.getCurrentEnvironment(),requestContext.getRequestSpecificEnvironment());
       ApiProxy.setEnvironmentForCurrentThread(requestContext.getRequestSpecificEnvironment());      
@@ -378,6 +409,7 @@ public class VmRuntimeWebAppContext
       ServletRequest request = sre.getServletRequest();
       Request baseRequest = Request.getBaseRequest(request);
       RequestContext requestContext = getRequestContext(baseRequest);
+      requestContext.record("requestInitialized");
       
       // Check for SkipAdminCheck and set attributes accordingly.
       VmRuntimeUtils.handleSkipAdminCheck(requestContext);
@@ -390,6 +422,8 @@ public class VmRuntimeWebAppContext
     public void requestDestroyed(ServletRequestEvent sre) {      
       ServletRequest request = sre.getServletRequest();
       Request baseRequest = Request.getBaseRequest(request);
+      RequestContext requestContext = getRequestContext(baseRequest);
+      requestContext.record("requestDestroyed");
       
       if (request.isAsyncStarted()) {
         request.getAsyncContext().addListener(new AsyncListener() {
@@ -409,6 +443,8 @@ public class VmRuntimeWebAppContext
     
     @Override
     public void exitScope(org.eclipse.jetty.server.handler.ContextHandler.Context context, Request baseRequest) {
+      RequestContext requestContext = getRequestContext(baseRequest);
+      requestContext.record("exitScope");
       if (LOG.isDebugEnabled())
         LOG.debug("Exit {} -> {}",ApiProxy.getCurrentEnvironment(),defaultEnvironment);
       ApiProxy.setEnvironmentForCurrentThread(defaultEnvironment);
@@ -417,6 +453,7 @@ public class VmRuntimeWebAppContext
     private void complete(Request baseRequest)
     {
       RequestContext requestContext = getRequestContext(baseRequest);
+      requestContext.record("complete request");
       VmApiProxyEnvironment env = requestContext.getRequestSpecificEnvironment();
 
       // Transaction Cleanup 
@@ -424,18 +461,27 @@ public class VmRuntimeWebAppContext
       if (!txns.isEmpty()) {
         handleAbandonedTxns(txns);
       }
-     
+
+      requestContext.record("handledAbandonedTxns");
+      
       // Save dirty sessions
       HttpSession session = baseRequest.getSession(false);
       if (session instanceof AppEngineSession) {
         final AppEngineSession aeSession = (AppEngineSession) session;
-              if (aeSession.isDirty())
+              if (aeSession.isDirty()) {
                 aeSession.save();
+                requestContext.record("session.saved");
+              }
       }
 
+      
       // Interrupt all API calls
       VmRuntimeUtils.interruptRequestThreads(env, VmRuntimeUtils.MAX_REQUEST_THREAD_INTERRUPT_WAIT_TIME_MS);
+      requestContext.record("interruptRequestThreads");
       env.waitForAllApiCallsToComplete(VmRuntimeUtils.MAX_REQUEST_THREAD_API_CALL_WAIT_MS);
+      requestContext.record("waitForAllApiCallsToComplete");
+      
+      requestContext.logHistory();
       
     }
 
