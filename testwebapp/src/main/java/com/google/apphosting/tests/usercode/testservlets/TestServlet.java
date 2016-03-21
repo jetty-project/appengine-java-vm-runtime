@@ -40,10 +40,17 @@ public class TestServlet extends HttpServlet {
     res.flushBuffer();
     if (history!=null)
       history.add(String.format("%d,%s", System.nanoTime(),"Response Committed"));
-    
+
     if (history!=null)
+    {
+      long last=0;
       for (String line : history)
-        res.getWriter().println(line);
+      {
+        long time = Long.valueOf(line.split(",")[0]).longValue();
+        res.getWriter().printf("%9d, %s%n",(time-last),line);
+        last=time;
+      }
+    }
   }
 
   public void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {

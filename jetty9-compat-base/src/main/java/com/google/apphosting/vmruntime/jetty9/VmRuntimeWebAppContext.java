@@ -47,9 +47,12 @@ import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.quickstart.PreconfigureDescriptorProcessor;
 import org.eclipse.jetty.quickstart.QuickStartDescriptorGenerator;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
+import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.session.AbstractSessionManager;
+import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.ConcurrentArrayQueue;
 import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.component.LifeCycle;
@@ -70,9 +73,12 @@ import java.util.concurrent.TimeUnit;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
+import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestEvent;
 import javax.servlet.ServletRequestListener;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
@@ -333,8 +339,67 @@ public class VmRuntimeWebAppContext
     AbstractSessionManager sessionManager;
     if (appEngineWebXml.getSessionsEnabled()) {
       sessionManager = new SessionManager(createSessionStores(appEngineWebXml));
-      getSessionHandler().setSessionManager(sessionManager);
+      getSessionHandler().setSessionManager(sessionManager);  
     }
+  }
+
+  @Override
+  protected SessionHandler newSessionHandler() {
+    return new SessionHandler()
+    {
+      @Override
+      public void doScope(String target, Request baseRequest, HttpServletRequest request,
+          HttpServletResponse response) throws IOException, ServletException {  
+        RequestContext requestContext = getRequestContext(baseRequest);
+          requestContext.record("session.doScope");
+        super.doScope(target, baseRequest, request, response);
+      }
+
+      @Override
+      public void doHandle(String target, Request baseRequest, HttpServletRequest request,
+          HttpServletResponse response) throws IOException, ServletException {
+        RequestContext requestContext = getRequestContext(baseRequest);
+        requestContext.record("session.doHandle");
+        super.doHandle(target, baseRequest, request, response);
+      }
+    };
+  }
+
+  @Override
+  protected SecurityHandler newSecurityHandler() {
+    return new ConstraintSecurityHandler()
+        {
+          @Override
+          public void handle(String arg0, Request baseRequest, HttpServletRequest arg2, HttpServletResponse arg3)
+              throws IOException, ServletException {
+            RequestContext requestContext = getRequestContext(baseRequest);
+            requestContext.record("security.handle");
+            super.handle(arg0, baseRequest, arg2, arg3);
+          }
+        };
+  }
+
+  @Override
+  protected ServletHandler newServletHandler() {
+    return new ServletHandler()
+        {
+      @Override
+      public void doScope(String target, Request baseRequest, HttpServletRequest request,
+          HttpServletResponse response) throws IOException, ServletException {  
+        
+        RequestContext requestContext = getRequestContext(baseRequest);
+          requestContext.record("servlet.doScope");
+        super.doScope(target, baseRequest, request, response);
+      }
+
+      @Override
+      public void doHandle(String target, Request baseRequest, HttpServletRequest request,
+          HttpServletResponse response) throws IOException, ServletException {
+        RequestContext requestContext = getRequestContext(baseRequest);
+        requestContext.record("servlet.doHandle");
+        super.doHandle(target, baseRequest, request, response);
+      }
+        };
   }
 
   @Override
@@ -389,8 +454,10 @@ public class VmRuntimeWebAppContext
     }
 
     public void logHistory() {
+      StringBuilder buf = new StringBuilder();
       for (String line : history)
-        LOG.info("HISTORY, "+line);
+        buf.append(line).append("\n");
+      LOG.info("HISTORY "+buf.toString());
     }
   }
   
