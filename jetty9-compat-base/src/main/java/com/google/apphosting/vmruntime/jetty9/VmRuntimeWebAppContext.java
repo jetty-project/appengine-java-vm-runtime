@@ -350,9 +350,19 @@ public class VmRuntimeWebAppContext
       @Override
       public void doScope(String target, Request baseRequest, HttpServletRequest request,
           HttpServletResponse response) throws IOException, ServletException {  
+
         RequestContext requestContext = getRequestContext(baseRequest);
-          requestContext.record("session.doScope");
-        super.doScope(target, baseRequest, request, response);
+        requestContext.record("session.doScope");
+        
+        try
+        {
+          SessionManager.context.set(requestContext);
+          super.doScope(target, baseRequest, request, response);
+        }
+        finally
+        {
+          SessionManager.context.set(null);
+        }
       }
 
       @Override
@@ -417,7 +427,7 @@ public class VmRuntimeWebAppContext
     return requestContext;
   }
 
-  class RequestContext extends HttpServletRequestAdapter { 
+  public class RequestContext extends HttpServletRequestAdapter { 
     private final VmApiProxyEnvironment requestSpecificEnvironment;
     private final Queue<String> history = new ConcurrentArrayQueue<>();
     
@@ -440,11 +450,11 @@ public class VmRuntimeWebAppContext
       record("VmApiProxyEnv created");
     }
 
-    void record(String event)
+    public void record(String event)
     {
       record(System.nanoTime(),event);
     }
-    void record(long nano,String event)
+    public void record(long nano,String event)
     {
       history.offer(String.format("%d,%s", nano, event));
     }

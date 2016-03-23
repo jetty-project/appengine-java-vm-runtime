@@ -24,7 +24,7 @@ import com.google.apphosting.api.ApiProxy.LogRecord;
 import com.google.apphosting.api.DeadlineExceededException;
 import com.google.apphosting.runtime.SessionData;
 import com.google.apphosting.runtime.SessionStore;
-
+import com.google.apphosting.vmruntime.jetty9.VmRuntimeWebAppContext.RequestContext;
 
 import org.eclipse.jetty.server.session.AbstractSession;
 import org.eclipse.jetty.server.session.AbstractSessionManager;
@@ -61,6 +61,8 @@ public class SessionManager extends AbstractSessionManager {
   private static final Logger logger =
       Logger.getLogger(SessionManager.class.getName());
 
+  public static ThreadLocal<RequestContext> context = new ThreadLocal<>();
+  
   static final String SESSION_PREFIX = "_ahs";
 
   /**
@@ -164,7 +166,7 @@ public class SessionManager extends AbstractSessionManager {
     
     @Override
     public void renewId(HttpServletRequest request) {
-      
+      context.get().record("session.renewId");
       String oldId = getClusterId();
       
       //remove session with the old from storage
@@ -185,6 +187,7 @@ public class SessionManager extends AbstractSessionManager {
       setIdChanged(true);  
       
       ((SessionManager)getSessionManager()).callSessionIdListeners(this, oldId);
+      context.get().record("session.renewIded");
     }
     
    
@@ -196,6 +199,7 @@ public class SessionManager extends AbstractSessionManager {
 
     protected void save (boolean force)
     {
+      context.get().record("session.save "+force);
       logger.fine("Session " + getId() + "is"+(dirty?" dirty":" not dirty")+(force || dirty ? " saving":" not saving"));
       
       //save if it is dirty or its a forced save
@@ -239,6 +243,7 @@ public class SessionManager extends AbstractSessionManager {
               " - too many timeouts.", e);
         }
       }
+      context.get().record("session.saved");
     }
 
     @Override
@@ -310,6 +315,7 @@ public class SessionManager extends AbstractSessionManager {
 
     @Override
     protected boolean access(long accessTime) {
+      context.get().record("access");
       // Optimize flushing of session data to persistent storage based on nearness to expiry time.
       long expirationTime = sessionData.getExpirationTime();
       long timeRemaining = expirationTime - accessTime;
@@ -323,6 +329,7 @@ public class SessionManager extends AbstractSessionManager {
       sessionData.setExpirationTime(System.currentTimeMillis()
               + getSessionExpirationInMilliseconds());
       // Handle session being invalid, update number of requests inside session.
+      context.get().record("accessed");
       return super.access(accessTime);
     }
 
@@ -397,6 +404,9 @@ public class SessionManager extends AbstractSessionManager {
 
   @Override
   public AppEngineSession getSession(String sessionId) {
+    context.get().record("getSession");
+    try
+    {
     SessionData data = loadSession(sessionId);
     if (data != null) {
       // Make access time same as create time.
@@ -405,9 +415,17 @@ public class SessionManager extends AbstractSessionManager {
     } else {
       return null;
     }
+    }
+    finally
+    {
+      context.get().record("gotSession");
+    }
   }
 
   SessionData loadSession(String sessionId) {
+    context.get().record("loadSession");
+    try
+    {
     String key = SESSION_PREFIX + sessionId;
 
     SessionData data = null;
@@ -437,6 +455,11 @@ public class SessionManager extends AbstractSessionManager {
       }
     }
     return data;
+    }
+    finally
+    {
+      context.get().record("loaded");
+    }
   }
 
   SessionData createSession(String sessionId) {

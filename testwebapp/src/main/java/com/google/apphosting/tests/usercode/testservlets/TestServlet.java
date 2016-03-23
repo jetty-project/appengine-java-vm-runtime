@@ -47,7 +47,7 @@ public class TestServlet extends HttpServlet {
       for (String line : history)
       {
         long time = Long.valueOf(line.split(",")[0]).longValue();
-        res.getWriter().printf("%9d, %s%n",(time-last),line);
+        res.getWriter().printf("%9,d, %s%n",(time-last),line);
         last=time;
       }
     }
