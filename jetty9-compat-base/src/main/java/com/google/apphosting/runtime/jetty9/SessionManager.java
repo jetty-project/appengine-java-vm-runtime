@@ -164,9 +164,10 @@ public class SessionManager extends AbstractSessionManager {
       return dirty;
     }
     
+    
     @Override
     public void renewId(HttpServletRequest request) {
-      context.get().record("session.renewId");
+      record("session.renewId");
       String oldId = getClusterId();
       
       //remove session with the old from storage
@@ -187,7 +188,7 @@ public class SessionManager extends AbstractSessionManager {
       setIdChanged(true);  
       
       ((SessionManager)getSessionManager()).callSessionIdListeners(this, oldId);
-      context.get().record("session.renewIded");
+      record("session.renewIded");
     }
     
    
@@ -199,7 +200,7 @@ public class SessionManager extends AbstractSessionManager {
 
     protected void save (boolean force)
     {
-      context.get().record("session.save "+force);
+      record("session.save "+force);
       logger.fine("Session " + getId() + "is"+(dirty?" dirty":" not dirty")+(force || dirty ? " saving":" not saving"));
       
       //save if it is dirty or its a forced save
@@ -243,7 +244,7 @@ public class SessionManager extends AbstractSessionManager {
               " - too many timeouts.", e);
         }
       }
-      context.get().record("session.saved");
+      record("session.saved");
     }
 
     @Override
@@ -315,7 +316,7 @@ public class SessionManager extends AbstractSessionManager {
 
     @Override
     protected boolean access(long accessTime) {
-      context.get().record("access");
+      record("access");
       // Optimize flushing of session data to persistent storage based on nearness to expiry time.
       long expirationTime = sessionData.getExpirationTime();
       long timeRemaining = expirationTime - accessTime;
@@ -329,7 +330,7 @@ public class SessionManager extends AbstractSessionManager {
       sessionData.setExpirationTime(System.currentTimeMillis()
               + getSessionExpirationInMilliseconds());
       // Handle session being invalid, update number of requests inside session.
-      context.get().record("accessed");
+      record("accessed");
       return super.access(accessTime);
     }
 
@@ -374,6 +375,13 @@ public class SessionManager extends AbstractSessionManager {
     return lastId;
   }
 
+  void record(String s)
+  {
+    RequestContext c=context.get();
+    if (c!=null)
+      c.record(s);
+  }
+  
   /**
    * Constructs a SessionManager
    *
@@ -404,7 +412,7 @@ public class SessionManager extends AbstractSessionManager {
 
   @Override
   public AppEngineSession getSession(String sessionId) {
-    context.get().record("getSession");
+    record("getSession");
     try
     {
     SessionData data = loadSession(sessionId);
@@ -418,12 +426,12 @@ public class SessionManager extends AbstractSessionManager {
     }
     finally
     {
-      context.get().record("gotSession");
+      record("gotSession");
     }
   }
 
   SessionData loadSession(String sessionId) {
-    context.get().record("loadSession");
+    record("loadSession");
     try
     {
     String key = SESSION_PREFIX + sessionId;
@@ -458,7 +466,7 @@ public class SessionManager extends AbstractSessionManager {
     }
     finally
     {
-      context.get().record("loaded");
+      record("loaded");
     }
   }
 
