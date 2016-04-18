@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>appengine-java-vm-runtime</artifactId>
+        <groupId>com.google.appengine</groupId>
+        <version>1.9.34-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>stubs</artifactId>
+    <name>Stubs Parent</name>
+    <packaging>pom</packaging>
+    <modules>
+        <module>stubs-runner</module>
+        <module>stubs-appengine</module>
+        <module>stubs-webapp</module>
+    </modules>
+</project>

@@ -57,7 +57,7 @@ public class VmRuntimeWebAppDeployer extends AbstractLifeCycle
     Resource resource = Resource.newResource(webapp);
     File file = resource.getFile();
     if (!resource.exists())
-        throw new IllegalStateException("WebApp resouce does not exist "+resource);
+        throw new IllegalStateException("WebApp resource does not exist "+resource);
 
     String lcName=file.getName().toLowerCase(Locale.ENGLISH);
 
@@ -74,6 +74,7 @@ public class VmRuntimeWebAppDeployer extends AbstractLifeCycle
       WebAppContext wac=new WebAppContext();
       wac.setWar(webapp);
       wac.setContextPath("/");
+      handler = wac;
     }
     
     contexts.addHandler(handler);

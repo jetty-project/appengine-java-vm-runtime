@@ -84,6 +84,7 @@
     <module>testwebapp</module>
     <module>jetty9-compat-base</module>
     <module>jetty9-compat</module>
+    <module>stubs</module>
   </modules>
 
   <dependencyManagement>
