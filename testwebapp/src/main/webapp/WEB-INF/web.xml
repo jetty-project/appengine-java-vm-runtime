@@ -402,6 +402,11 @@
     <servlet-class>com.google.apphosting.tests.usercode.testservlets.DumpServlet</servlet-class>
   </servlet>
 
+  <servlet>
+    <servlet-name>dumpAppEngEnv</servlet-name>
+    <servlet-class>com.google.apphosting.tests.usercode.testservlets.DumpAppEngineEnvServlet</servlet-class>
+  </servlet>
+
   <servlet-mapping>
     <servlet-name>test</servlet-name>
     <url-pattern>/test</url-pattern>
@@ -782,6 +787,10 @@
   <servlet-mapping>
     <servlet-name>dump</servlet-name>
     <url-pattern>/dump/*</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>dumpAppEngEnv</servlet-name>
+    <url-pattern>/dumpenv/*</url-pattern>
   </servlet-mapping>
 
   <welcome-file-list>

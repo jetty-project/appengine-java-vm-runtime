@@ -10,6 +10,9 @@
     <artifactId>stubs-webapp</artifactId>
     <packaging>war</packaging>
     <name>stubs-webapp Maven Webapp</name>
+    <properties>
+        <appengine-version>1.9.30</appengine-version>
+    </properties>
     <build>
         <finalName>stubs-webapp</finalName>
     </build>
@@ -24,6 +27,12 @@
             <groupId>javax.websocket</groupId>
             <artifactId>javax.websocket-api</artifactId>
             <version>1.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-api-1.0-sdk</artifactId>
+            <version>${appengine-version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

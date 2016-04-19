@@ -12,4 +12,13 @@
     <servlet-name>time</servlet-name>
     <url-pattern>/time/*</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <servlet-name>appen-env</servlet-name>
+    <servlet-class>com.google.appengine.stubs.app.AppEngineEnvServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>appen-env</servlet-name>
+    <url-pattern>/env/*</url-pattern>
+  </servlet-mapping>
+
 </web-app>

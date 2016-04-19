@@ -1,6 +1,7 @@
 package com.google.appengine.stubs.runner;
 
-import com.google.apphosting.vmruntime.jetty9.VmRuntimeWebAppDeployer;
+
+import com.google.apphosting.api.ApiProxy;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -68,7 +69,12 @@ public class AppServer extends Server
         LOG.info("Root WebApp : {}", rootWebApp);
 
         // GAE Deployer
-        VmRuntimeWebAppDeployer deployer = new VmRuntimeWebAppDeployer(contexts, rootWebApp.toASCIIString());
-        this.addBean(deployer);
+        // VmRuntimeWebAppDeployer deployer = new VmRuntimeWebAppDeployer(contexts, rootWebApp.toASCIIString());
+        // this.addBean(deployer);
+
+        AppEngineContext ctx = new AppEngineContext(ApiProxy.getCurrentEnvironment());
+        ctx.setContextPath("/");
+        ctx.setWar(rootWebApp.toASCIIString());
+        contexts.addHandler(ctx);
     }
 }

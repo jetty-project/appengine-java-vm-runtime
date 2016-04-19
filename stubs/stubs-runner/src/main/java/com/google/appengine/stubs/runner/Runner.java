@@ -1,6 +1,6 @@
 package com.google.appengine.stubs.runner;
 
-import com.google.appengine.stubs.MetadataServer;
+import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -14,22 +14,34 @@ import org.eclipse.jetty.util.log.Logger;
 
 public class Runner
 {
-    private static final Logger LOG = Log.getLogger(Runner.class);
+    private static final LocalServiceTestHelper helper;
+    private static final Logger LOG;
+
+    static {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+
+        helper = new LocalServiceTestHelper();
+        helper.setUp();
+
+        LOG = Log.getLogger(Runner.class);
+    }
 
     public static void main(String args[])
     {
         // Start Metadata Server
-        MetadataServer metadata = new MetadataServer();
+        // MetadataServer metadata = new MetadataServer();
+//        LocalServiceTestHelper helper = new LocalServiceTestHelper();
 
         try
         {
-            LOG.info("Starting metadata server");
-            metadata.start();
+            // LOG.info("Starting metadata server");
+            // metadata.start();
+//            helper.setUp();
 
             // Initialize App Server
             LOG.info("Init app server");
             AppServer app = new AppServer();
-            app.setMetadataServerRef(metadata.getServerUri());
+            // app.setMetadataServerRef(metadata.getServerUri());
             URI stubsWebAppURI = findStubsWebAppURI();
             app.setRootWebApp(stubsWebAppURI);
 
@@ -56,7 +68,8 @@ public class Runner
         }
         finally
         {
-            quietStop(metadata);
+            helper.tearDown();
+            // quietStop(metadata);
         }
     }
 
