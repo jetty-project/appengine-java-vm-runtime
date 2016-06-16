@@ -35,29 +35,26 @@
   <dependencies>
     <dependency>
       <groupId>com.google.appengine</groupId>
-      <artifactId>appengine-java-logging</artifactId>
-      <version>1.9.38-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.appengine</groupId>
       <artifactId>appengine-api-1.0-sdk</artifactId>
       <version>${appengine.api.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>4.4.1</version>
+      <groupId>com.google.appengine</groupId>
+      <artifactId>appengine-java-logging</artifactId>
+      <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
       <version>4.4.1</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>1.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>

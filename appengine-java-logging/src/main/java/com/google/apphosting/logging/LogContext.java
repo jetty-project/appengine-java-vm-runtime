@@ -25,7 +25,9 @@ import java.util.stream.Stream;
  * <p>
  * <p>This is an implementation of a Mapped Diagnostic Context for use with the java.util.logging
  * framework.
+ * @deprecated use {@link org.slf4j.MDC} instead
  */
+@Deprecated
 public class LogContext extends ConcurrentHashMap<String, Object> {
 
   private static final ThreadLocal<LogContext> threadContext =

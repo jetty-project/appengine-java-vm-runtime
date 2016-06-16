@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <!-- reset all previous level configurations of all j.u.l. loggers -->
+        <resetJUL>true</resetJUL>
+    </contextListener>
+
+    <appender name="CloudDebugger" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/app_engine/app.%i.log.json</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>app.%i.log.json</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder class="com.google.apphosting.logging.JsonLayout" />
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="CloudDebugger"/>
+    </root>
+</configuration>

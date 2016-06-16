@@ -40,11 +40,9 @@ import com.google.apphosting.vmruntime.VmApiProxyEnvironment;
 import com.google.apphosting.vmruntime.VmEnvironmentFactory;
 import com.google.apphosting.vmruntime.VmMetadataCache;
 import com.google.apphosting.vmruntime.VmRequestUtils;
-import com.google.apphosting.vmruntime.VmRuntimeFileLogHandler;
+import com.google.apphosting.vmruntime.VmRuntimeLogging;
 import com.google.apphosting.vmruntime.VmRuntimeUtils;
 import com.google.apphosting.vmruntime.VmTimer;
-
-import org.eclipse.jetty.http.HttpScheme;
 import org.eclipse.jetty.quickstart.PreconfigureDescriptorProcessor;
 import org.eclipse.jetty.quickstart.QuickStartDescriptorGenerator;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
@@ -310,11 +308,13 @@ public class VmRuntimeWebAppContext extends WebAppContext
       appEngineWebXml = appEngineWebXmlReader.readAppEngineWebXml();
     }
     VmRuntimeUtils.installSystemProperties(defaultEnvironment, appEngineWebXml);
-    String logConfig = System.getProperty("java.util.logging.config.file");
+
+    // Load WebApp specific Logging
+    String logConfig = System.getProperty(VmRuntimeLogging.LOGGING_CONFIGURATION_KEY);
     if (logConfig != null && logConfig.startsWith("WEB-INF/")) {
-      System.setProperty("java.util.logging.config.file", URIUtil.addPaths(appDir, logConfig));
+      logConfig = URIUtil.addPaths(appDir, logConfig);
     }
-    VmRuntimeFileLogHandler.init();
+    VmRuntimeLogging.load(logConfig);
 
     for (String systemClass : SYSTEM_CLASSES) {
       addSystemClass(systemClass);

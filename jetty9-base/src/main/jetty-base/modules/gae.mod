@@ -9,6 +9,7 @@ server
 [optional]
 
 [xml]
+etc/jetty-logging.xml
 etc/gae.xml
 
 [lib]
