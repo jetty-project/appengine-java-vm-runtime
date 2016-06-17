@@ -7,12 +7,15 @@
 
     <appender name="CloudDebugger" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>/var/log/app_engine/app.%i.log.json</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <encoder class="com.google.apphosting.logging.JsonEncoder" />
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>app.%i.log.json</fileNamePattern>
-            <maxHistory>30</maxHistory>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
         </rollingPolicy>
-
-        <encoder class="com.google.apphosting.logging.JsonLayout" />
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>5MB</maxFileSize>
+        </triggeringPolicy>
     </appender>
 
     <root level="info">

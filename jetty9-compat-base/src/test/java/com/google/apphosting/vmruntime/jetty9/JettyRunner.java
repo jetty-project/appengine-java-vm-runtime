@@ -16,11 +16,10 @@
 
 package com.google.apphosting.vmruntime.jetty9;
 
-import static com.google.apphosting.vmruntime.VmRuntimeFileLogHandler.JAVA_UTIL_LOGGING_CONFIG_PROPERTY;
 import static com.google.apphosting.vmruntime.jetty9.VmRuntimeTestBase.JETTY_HOME_PATTERN;
 
 import com.google.apphosting.jetty9.GoogleRequestCustomizer;
-import com.google.apphosting.vmruntime.VmRuntimeFileLogHandler;
+import com.google.apphosting.vmruntime.VmRuntimeLogging;
 
 import org.eclipse.jetty.apache.jsp.JettyJasperInitializer;
 import org.eclipse.jetty.io.MappedByteBufferPool;
@@ -35,6 +34,8 @@ import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
+import org.eclipse.jetty.toolchain.test.MavenTestingUtils;
+import org.eclipse.jetty.toolchain.test.PathAssert;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -43,6 +44,7 @@ import org.junit.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -106,28 +108,12 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
   @Override
   public void doStart() throws Exception {
     try {
-      // find projectDir
-      File project =
-          new File(System.getProperty("user.dir", ".")).getAbsoluteFile().getCanonicalFile();
-      File target = new File(project, "jetty9-compat-base/target");
-      while (!target.exists()) {
-        project = project.getParentFile();
-        if (project == null) {
-          break;
-        }
-        target = new File(project, "jetty9-compat-base/target");
+      Path jettyBase = IntegrationEnv.getJettyBase();
+      logs = jettyBase.resolve("logs").toFile();
+      if (logs.exists()) {
+        logs.delete();
+        logs.mkdirs();
       }
-
-      File jettyBase =
-          new File(
-              System.getProperty("jetty.base", new File(target, "jetty-base").getAbsolutePath()));
-
-      Assert.assertTrue(target.isDirectory());
-      Assert.assertTrue(jettyBase.isDirectory());
-      logs = new File(target, "logs");
-      logs.delete();
-      logs.mkdirs();
-      logs.deleteOnExit();
 
       // Set GAE SystemProperties
       setSystemProperties(logs);
@@ -209,13 +195,12 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
           true);
 
       // find the sibling testwebapp target
-      File webAppLocation = new File(target, webapp);
+      File webAppLocation = MavenTestingUtils.getTargetFile(webapp);
+      PathAssert.assertDirExists("webapp dir", webAppLocation);
 
-      File logging =
-          new File(webAppLocation, "WEB-INF/logging.properties")
-              .getCanonicalFile()
-              .getAbsoluteFile();
-      System.setProperty(JAVA_UTIL_LOGGING_CONFIG_PROPERTY, logging.toPath().toString());
+      Path logging = webAppLocation.toPath().resolve("WEB-INF/logback.xml");
+      System.setProperty(
+          VmRuntimeLogging.LOGGING_CONFIGURATION_KEY, logging.toRealPath().toString());
 
       Assert.assertTrue(webAppLocation.toString(), webAppLocation.isDirectory());
 
@@ -224,7 +209,7 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
       context.setParentLoaderPriority(true); // true in tests for easier mocking
 
       // Hack to find the webdefault.xml
-      File webDefault = new File(jettyBase, "etc/webdefault.xml");
+      File webDefault = jettyBase.resolve("etc/webdefault.xml").toFile();
       context.setDefaultsDescriptor(webDefault.getAbsolutePath());
 
       contexts.addHandler(context);
@@ -258,8 +243,6 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
    * Sets the system properties expected by jetty.xml.
    */
   protected void setSystemProperties(File logs) throws IOException {
-    String logFilePattern = logs.getAbsolutePath() + "/log.%g";
-    System.setProperty(VmRuntimeFileLogHandler.LOG_PATTERN_CONFIG_PROPERTY, logFilePattern);
     System.setProperty("jetty.appengineport", String.valueOf(findAvailablePort()));
     System.setProperty("jetty.appenginehost", "localhost");
     System.setProperty("jetty.appengine.forwarded", "true");

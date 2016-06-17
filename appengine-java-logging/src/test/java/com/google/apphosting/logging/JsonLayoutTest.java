@@ -168,7 +168,6 @@ public class JsonLayoutTest {
       if (data.severity.equals("ERROR")) {
         assertThat("throwable", data.throwable,
             startsWith("java.lang.RuntimeException: Generic Error"));
-
       }
     }
   }
@@ -279,7 +278,6 @@ public class JsonLayoutTest {
       public long seconds;
       public int nanos;
     }
-
 
     public LogTimestamp timestamp;
     public String severity;

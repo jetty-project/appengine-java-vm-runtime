@@ -41,27 +41,30 @@ public class VmRuntimeLogging {
     LoggerContext rootContext =
         (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
 
-    // Load user provided logback XML
+    // Reset root
+    rootContext.reset();
+
+    // Load user provided logback XML (aka the User Configuration)
     ContextInitializer initializer = new ContextInitializer(rootContext);
 
     if ((logbackXmlFile != null) && (logbackXmlFile.length() > 0)) {
       System.setProperty(LOGGING_CONFIGURATION_KEY, logbackXmlFile);
       try {
         initializer.autoConfig();
+        System.err.println("## Initialized User Logging from " + logbackXmlFile);
       } catch (JoranException e) {
         throw new AppEngineConfigException(e);
       }
     }
 
-    // Load the system logback XML
+    // Load the system logback XML (aka the System Configuration)
     try {
       Enumeration<URL> configUrls =
-          VmRuntimeLogging.class.getClass().getClassLoader().getResources("logback.xml");
+          VmRuntimeLogging.class.getClassLoader().getResources("logback.xml");
       while (configUrls.hasMoreElements()) {
         URL url = configUrls.nextElement();
-        if (url.toExternalForm().endsWith("resources/logback.xml")) {
-          initializer.configureByResource(url);
-        }
+        System.err.println("## Initialized System Logging from " + url);
+        initializer.configureByResource(url);
       }
     } catch (JoranException | IOException e) {
       throw new AppEngineConfigException(e);

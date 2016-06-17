@@ -20,7 +20,6 @@ import static com.google.apphosting.vmruntime.VmMetadataCache.DEFAULT_META_DATA_
 import static com.google.apphosting.vmruntime.VmMetadataCache.META_DATA_PATTERN;
 
 import junit.framework.TestCase;
-
 import org.junit.Ignore;
 
 import java.io.BufferedReader;
@@ -31,6 +30,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -45,7 +45,18 @@ import javax.servlet.http.HttpServletResponse;
 @Ignore
 public class VmRuntimeTestBase extends TestCase {
 
-  protected static final Logger logger = Logger.getLogger(VmRuntimeTestBase.class.getName());
+  static {
+    try {
+      Path jettyBase = IntegrationEnv.getJettyBase();
+      System.setProperty("jetty.base", jettyBase.toString());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    LOG = Logger.getLogger(VmRuntimeTestBase.class.getName());
+  }
+
+  protected static final Logger LOG;
   private static final String HOME_FOLDER = System.getProperty("HOME_FOLDER", "jetty_home");
   public static final String JETTY_HOME_PATTERN =
       "" //TestUtil.getRunfilesDir()
@@ -197,7 +208,7 @@ public class VmRuntimeTestBase extends TestCase {
         try {
           reader.close();
         } catch (IOException e) {
-          logger.info("Error closing connection for " + path + ": " + e.getMessage());
+          LOG.info("Error closing connection for " + path + ": " + e.getMessage());
         }
       }
       if (connection != null) {
