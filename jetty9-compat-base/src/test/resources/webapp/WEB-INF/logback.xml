@@ -6,8 +6,8 @@
         </encoder>
     </appender>
 
-    <logger name="com.foo.level" level="debug"/>
-    <logger name="com.foo.bar.level" level="error"/>
+    <logger name="com.foo" level="debug"/>
+    <logger name="com.foo.bar" level="error"/>
 
     <root level="info">
         <appender-ref ref="STDOUT"/>

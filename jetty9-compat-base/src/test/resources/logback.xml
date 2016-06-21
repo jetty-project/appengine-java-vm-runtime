@@ -6,8 +6,8 @@
     </contextListener>
 
     <appender name="CloudDebugger" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>target/jetty-base/logs/app.0.log.json</file>
-        <encoder class="com.google.apphosting.logging.JsonEncoder" />
+        <file>target/tests/test-it-jetty-base/logs/app.0.log.json</file>
+        <encoder class="com.google.apphosting.logging.JsonEncoder"/>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
             <fileNamePattern>app.%i.log.json</fileNamePattern>
             <minIndex>1</minIndex>
@@ -19,7 +19,7 @@
     </appender>
 
     <appender name="Human" class="ch.qos.logback.core.FileAppender">
-        <file>target/jetty-base/logs/app.0.log</file>
+        <file>target/tests/test-it-jetty-base/logs/app.0.log</file>
         <append>true</append>
         <encoder>
             <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>

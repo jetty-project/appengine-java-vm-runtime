@@ -17,6 +17,8 @@
 package com.google.apphosting.vmruntime.jetty9;
 
 import static com.google.apphosting.vmruntime.jetty9.VmRuntimeTestBase.JETTY_HOME_PATTERN;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import com.google.apphosting.jetty9.GoogleRequestCustomizer;
 import com.google.apphosting.vmruntime.VmRuntimeLogging;
@@ -39,7 +41,6 @@ import org.eclipse.jetty.toolchain.test.PathAssert;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.junit.Assert;
 
 import java.io.File;
 import java.io.IOException;
@@ -110,9 +111,8 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
     try {
       Path jettyBase = IntegrationEnv.getJettyBase();
       logs = jettyBase.resolve("logs").toFile();
-      if (logs.exists()) {
-        logs.delete();
-        logs.mkdirs();
+      if (!logs.exists()) {
+        assertThat("Unable to create directory: " + logs, logs.mkdirs(), is(true));
       }
 
       // Set GAE SystemProperties
@@ -202,7 +202,7 @@ class JettyRunner extends AbstractLifeCycle implements Runnable {
       System.setProperty(
           VmRuntimeLogging.LOGGING_CONFIGURATION_KEY, logging.toRealPath().toString());
 
-      Assert.assertTrue(webAppLocation.toString(), webAppLocation.isDirectory());
+      PathAssert.assertDirExists("WebAppLocation", webAppLocation);
 
       context.setResourceBase(webAppLocation.getAbsolutePath());
       context.init((appengineWebXml == null ? "WEB-INF/appengine-web.xml" : appengineWebXml));

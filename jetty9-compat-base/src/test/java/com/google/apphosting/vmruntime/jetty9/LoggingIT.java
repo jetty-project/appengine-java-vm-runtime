@@ -16,13 +16,17 @@
 
 package com.google.apphosting.vmruntime.jetty9;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import com.google.gson.Gson;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.eclipse.jetty.toolchain.test.PathAssert;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,8 +42,8 @@ public class LoggingIT extends VmRuntimeTestBase {
 
     HttpClient httpClient = new HttpClient();
     httpClient.getHttpConnectionManager().getParams().setConnectionTimeout(30000);
-    String query = Long.toHexString(System.nanoTime());
-    GetMethod get = new GetMethod(createUrl("/testLogging?nano=" + query).toString());
+    String query = "nano=" + Long.toHexString(System.nanoTime());
+    GetMethod get = new GetMethod(createUrl("/testLogging?" + query).toString());
     int httpCode = httpClient.executeMethod(get);
 
     assertThat(httpCode, equalTo(200));
@@ -48,35 +52,44 @@ public class LoggingIT extends VmRuntimeTestBase {
     assertThat(body, equalTo("FINE\nSEVERE\nfalse\n\n"));
 
     File logs = runner.getLogDir();
-    File log = new File(logs, "log.0");
+    File log = new File(logs, "app.0.log.json");
 
-    assertTrue(log.exists());
+    PathAssert.assertFileExists("JSON Log", log);
 
     // Look for the log entry with our query string
-    try (BufferedReader in =
-        new BufferedReader(
-            new InputStreamReader(new FileInputStream(log), StandardCharsets.ISO_8859_1))) {
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(new FileInputStream(log), StandardCharsets.UTF_8))) {
+      boolean foundServletLog = false;
+      int lineCount = 0;
       String line;
       while ((line = in.readLine()) != null) {
-        if (line.contains(query)) {
+        lineCount++;
+        // Look for line indicating we are in the LoggingServlet
+        if (line.contains("LogTest Hello " + query)) {
+          foundServletLog = true;
           break;
         }
       }
 
-      JsonData data = new Gson().fromJson(line, JsonData.class);
-      assertThat(data.severity, equalTo("INFO"));
-      assertThat(data.message, org.hamcrest.Matchers.containsString("LogTest Hello nano=" + query));
-
-      line = in.readLine();
-      data = new Gson().fromJson(line, JsonData.class);
-      assertThat(data.severity, equalTo("ERROR"));
       assertThat(
-          data.message, org.hamcrest.Matchers.containsString("LoggingServlet doGet: not null"));
+          "Servlet Log search (searched " + lineCount + " lines for " + query + ") in log: " + log,
+          foundServletLog, is(true));
+
+      JsonData data = new Gson().fromJson(line, JsonData.class);
+      assertThat(data.severity, is("INFO"));
+      assertThat(data.message, containsString("LogTest Hello " + query));
 
       line = in.readLine();
       data = new Gson().fromJson(line, JsonData.class);
-      assertThat(data.severity, equalTo("ERROR"));
-      assertThat(data.message, org.hamcrest.Matchers.containsString("LoggingServlet doGet: null"));
+      assertThat(data.severity, is("ERROR"));
+      assertThat(data.logger, is("com.foo.bar"));
+      assertThat(data.message, containsString("not null"));
+
+      line = in.readLine();
+      data = new Gson().fromJson(line, JsonData.class);
+      assertThat(data.severity, is("ERROR"));
+      assertThat(data.logger, is("com.foo.bar"));
+      assertThat(data.message, nullValue());
     }
   }
 
@@ -84,13 +97,17 @@ public class LoggingIT extends VmRuntimeTestBase {
   public static class JsonData {
     public static class LogTimestamp {
       public long seconds;
-      public long nanos;
+      public int nanos;
     }
+
 
     public LogTimestamp timestamp;
     public String severity;
     public String thread;
     public String message;
+    public String logger;
+    public String caller;
     public String traceId;
+    public String throwable;
   }
 }

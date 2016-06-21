@@ -30,6 +30,7 @@ import java.util.Enumeration;
 
 public class VmRuntimeLogging {
   public static final String LOGGING_CONFIGURATION_KEY = "logback.configurationFile";
+  private static final boolean DEBUG = false;
 
   public static void load(String logbackXmlFile) throws AppEngineConfigException {
     // Establish java.util.logging -> slf4j bridge
@@ -51,7 +52,7 @@ public class VmRuntimeLogging {
       System.setProperty(LOGGING_CONFIGURATION_KEY, logbackXmlFile);
       try {
         initializer.autoConfig();
-        System.err.println("## Initialized User Logging from " + logbackXmlFile);
+        debug("Initialized User Logging from %s", logbackXmlFile);
       } catch (JoranException e) {
         throw new AppEngineConfigException(e);
       }
@@ -63,11 +64,17 @@ public class VmRuntimeLogging {
           VmRuntimeLogging.class.getClassLoader().getResources("logback.xml");
       while (configUrls.hasMoreElements()) {
         URL url = configUrls.nextElement();
-        System.err.println("## Initialized System Logging from " + url);
         initializer.configureByResource(url);
+        debug("Initialized System Logging from %s", url);
       }
     } catch (JoranException | IOException e) {
       throw new AppEngineConfigException(e);
+    }
+  }
+
+  private static void debug(String format, Object... args) {
+    if (DEBUG) {
+      System.err.printf("[Logging DEBUG] " + format + "%n", args);
     }
   }
 }

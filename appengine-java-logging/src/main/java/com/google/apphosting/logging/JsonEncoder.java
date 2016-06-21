@@ -41,6 +41,7 @@ public class JsonEncoder<E> extends EncoderBase<E> {
 
   @Override public void doEncode(E event) throws IOException {
     writer.write(layout.doLayout(event));
+    writer.flush();
   }
 
   @Override public void close() throws IOException {
