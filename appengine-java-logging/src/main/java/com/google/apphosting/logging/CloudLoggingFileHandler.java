@@ -17,9 +17,14 @@
 package com.google.apphosting.logging;
 
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 /**
@@ -38,11 +43,17 @@ public class CloudLoggingFileHandler extends FileHandler implements SystemLogger
   private static final String APP_ENGINE_LOG_CONFIG_PATTERN_ENV = "APP_ENGINE_LOG_CONFIG_PATTERN";
   private static final int LOG_PER_FILE_SIZE = getConfigInt("limit", 100 * 1024 * 1024);
   private static final int LOG_MAX_FILES = getConfigInt("count", 3);
+  
+  private static final AtomicInteger handlers = new AtomicInteger();
+  private static final BlockingQueue<LogEntry> queue = new LinkedBlockingQueue<>();
 
   public CloudLoggingFileHandler() throws IOException {
     super(fileLogPattern(), LOG_PER_FILE_SIZE, LOG_MAX_FILES, true);
     setLevel(Level.FINEST);
     setFormatter(new JsonFormatter());
+    if (handlers.getAndIncrement() == 0 ) {
+      new LoggerThread().start();
+    }
   }
 
   private static int getConfigInt(String suffix, int defValue) {
@@ -86,5 +97,58 @@ public class CloudLoggingFileHandler extends FileHandler implements SystemLogger
     }
 
     rootLogger.addHandler(new CloudLoggingFileHandler());
+  }
+
+  @Override
+  public void close() throws SecurityException {
+    super.close();
+    if (handlers.decrementAndGet() <= 0 ) {
+      queue.offer(null);
+    }
+  }
+
+  @Override
+  public void publish(LogRecord record) {
+    if (isLoggable(record)) {
+      queue.offer(new LogEntry(record));
+    }
+  }
+
+  private void superPublish(LogRecord record) {
+    super.publish(record);
+  }
+
+  private class LogEntry {
+    final LogRecord record;
+
+    LogEntry(LogRecord record) {
+      this.record = record;
+    }
+    
+    void publish() {
+      superPublish(record);
+    }
+  }
+  
+  static class LoggerThread extends Thread {
+    @Override
+    public void run() {
+      while (true) {
+        try {
+          LogEntry entry = queue.poll(1, TimeUnit.SECONDS);
+          if (entry == null) {
+            if (handlers.get() <= 0) {
+              return;
+            }
+          } else {
+            entry.publish();
+          }
+        } catch (InterruptedException e) {
+          if (handlers.get() <= 0) {
+            return;
+          }
+        }
+      }
+    }
   }
 }
